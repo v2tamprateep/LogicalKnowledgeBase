@@ -1,4 +1,4 @@
-Summary
+## Synopsis
 This logical knowledge base maintains a set of logical statements and will evaluate user queries
 based on the contents of it's knowledge base. The knowledge base supports propositional and first
 order logic. The user can 'tell' the knowledge base to store new information, and ask it to
