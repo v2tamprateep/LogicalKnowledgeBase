@@ -1,0 +1,22 @@
+Summary
+This logical knowledge base maintains a set of logical statements and will evaluate user queries
+based on the contents of it's knowledge base. The knowledge base supports propositional and first
+order logic. The user can 'tell' the knowledge base to store new information, and ask it to
+evaluate new or known queries.
+
+Variables known to the knowledge base are assumed to be true. For example, suppose the knowledge
+base is only aware of the boolean values A and B. Then if we ask the knowledge base is evaluate A
+or B, it will return True. If we ask the knowledge to evaluate some unknown value C, the evaluation
+will return False.
+
+The ultimate goal of this project is to be used in a planning AI agent.
+
+
+TODO:
+- Can evaluate be refactored so that there's no circular dependency between KnowledgeBase and
+logic classes?
+- Write unit tests
+- Make sure class names make sense
+- Support functions
+- Support nested quantifiers
+- Write interpreter
