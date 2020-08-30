@@ -13,8 +13,6 @@ The ultimate goal of this project is to be used in a planning AI agent.
 
 
 TODO:
-- Can evaluate be refactored so that there's no circular dependency between KnowledgeBase and
-logic classes?
 - Write unit tests
 - Make sure class names make sense
 - Support functions
