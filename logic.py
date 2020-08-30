@@ -1,12 +1,10 @@
 
 from abc import ABC, abstractmethod
-from enum import Enum
-import itertools
-from typing import Any, Callable, Iterable, Mapping, Union
+from typing import Any, Callable, Iterable, Mapping, Set, Union
 
 
 """
-In this context, a sentence is any evaluatable expression.
+Any evaluatable expression
 """
 class Sentence(ABC):
 
@@ -27,14 +25,12 @@ class Sentence(ABC):
         return self._name
 
     @abstractmethod
-    def evaluate(self,
-                 knowledge_base: 'KnowledgeBase',
-                 bindings: Mapping[str, 'Entity']=None) -> bool:
+    def evaluate(self, facts: Set, bindings: Mapping[str, 'Entity']=None) -> bool:
         pass
 
 
 """
-TODO: Rethink class hierarchy
+An atomic boolean variable
 """
 class Entity(Sentence):
 
@@ -43,13 +39,11 @@ class Entity(Sentence):
 
         self.attributes = set(attributes) if attributes else set()
 
-    def evaluate(self,
-                 knowledge_base: 'KnowledgeBase',
-                 bindings: Mapping[str, 'Entity']=None) -> bool:
+    def evaluate(self, facts: Set, bindings: Mapping[str, 'Entity']=None) -> bool:
         if bindings and self.name in bindings.keys():
-            return self.substitute(bindings[self.name]) in knowledge_base.truths
+            return self.substitute(bindings[self.name]) in facts
 
-        return self in knowledge_base.truths
+        return self in facts
 
     def substitute(self, new_name: str) -> 'Entity':
         return Entity(new_name, self.attributes)
@@ -58,34 +52,13 @@ class Entity(Sentence):
         return Predicate(Entity('True'), self)
 
 
-class Function(Sentence):
-
-    def __init__(self,
-                 name: str,
-                 entities: Iterable[Entity],
-                 action: Callable[[Iterable[Entity]], bool]):
-        self._name = name
-        self._entities = entities
-        self._action = action
-
-    def evaluate(self,
-                 knowledge_base: 'KnowledgeBase',
-                 bindings: Mapping[str, Entity]=None) -> bool:
-        if bindings:
-            substitutes = [e.substitute(bindings[e.name]) if e.name in bindings.keys() else e
-                           for e in self._entities]
-            return self._action(substitutes)
-
-        return self._action(self._entities)
-
-
 """
 A clause is a group of atoms or smaller subclauses.
 """
 class Clause(Sentence):
 
     @abstractmethod
-    def evaluate(self, knowledge_base: 'KnowledgeBase') -> bool:
+    def evaluate(self, facts: Set) -> bool:
         pass
 
     def get_components(self) -> Union[str, Iterable]:
@@ -95,9 +68,6 @@ class Clause(Sentence):
         return Predicate(Entity('True'), self)
 
 
-"""
-A clause that evaluates to True if all subcomponents evaluate to True and False otherwise.
-"""
 class AndClause(Clause):
 
     def __init__(self, clauses: Iterable[Sentence]):
@@ -106,15 +76,10 @@ class AndClause(Clause):
 
         self.sub_clauses = clauses
 
-    def evaluate(self,
-                 knowledge_base: 'KnowledgeBase',
-                 bindings: Mapping[str, Entity]=None) -> bool:
-        return all([clause.evaluate(knowledge_base, bindings) for clause in self.sub_clauses])
+    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+        return all([clause.evaluate(facts, bindings) for clause in self.sub_clauses])
 
 
-"""
-A single clause that evaluates to the negation of the clause's evaluation
-"""
 class NotClause(Clause):
 
     def __init__(self, clause: Sentence):
@@ -123,15 +88,10 @@ class NotClause(Clause):
 
         self.sub_clauses = [clause]
 
-    def evaluate(self,
-                 knowledge_base: 'KnowledgeBase',
-                 bindings: Mapping[str, Entity]=None) -> bool:
-        return not self.sub_clauses[0].evaluate(knowledge_base, bindings)
+    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+        return not self.sub_clauses[0].evaluate(facts, bindings)
 
 
-"""
-A clause that evaluates to True if any subcomponents evaluate to True and False otherwise.
-"""
 class OrClause(Clause):
 
     def __init__(self, clauses: Iterable[Sentence]):
@@ -140,8 +100,8 @@ class OrClause(Clause):
 
         self.sub_clauses = clauses
 
-    def evaluate(self, knowledge_base: 'KnowledgeBase', bindings: Mapping[str, Entity]=None) -> bool:
-        return any([clause.evaluate(knowledge_base, bindings) for clause in self.sub_clauses])
+    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+        return any([clause.evaluate(facts, bindings) for clause in self.sub_clauses])
 
 
 """
@@ -156,126 +116,9 @@ class Predicate(Sentence):
         self.lhs = left
         self.rhs = right
 
-    def evaluate(self,
-                 knowledge_base: 'KnowledgeBase',
-                 bindings: Mapping[str, Entity]=None) -> bool:
-        return not self.lhs.evaluate(knowledge_base, bindings) \
-            or self.rhs.evaluate(knowledge_base, bindings)
+    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+        return not self.lhs.evaluate(facts, bindings) \
+            or self.rhs.evaluate(facts, bindings)
 
     def to_predicate(self):
         return self
-
-
-class Quantifier(Sentence):
-
-    @staticmethod
-    def _create_bindings(variables: Iterable[str],
-                         entities: Iterable[Entity]) -> Mapping[str, Entity]:
-        tuples = zip(variables, entities)
-        return {v: e for v, e in tuples}
-
-    def to_predicate(self) -> 'Predicate':
-        return Predicate(Entity('True'), self)
-
-
-class ExistentialQuantifier(Quantifier):
-
-    def __init__(self, variables: Iterable[str], sentence: Sentence):
-        self._name = f'Exists {",".join(variables)}: {predicate.name}'
-
-        self._variables = variables
-        self._predicate = sentence.to_predicate()
-
-    def evaluate(self, knowledge_base: 'KnowledgeBase') -> bool:
-        # TODO: Do we need to normalize the variables so they don't overlap with atoms in the knowledgebase?
-        permutations = itertools.permutations(knowledge_base.truths, len(self._variables))
-        for permutation in permutations:
-            # create a mapping of variable to atom in knowledgebase
-            bindings = Quantifier._create_bindings(self._variables, permutation)
-            if self._predicate.evaluate(knowledge_base, bindings):
-                return True
-
-        return False
-
-
-class UniversalQuantifier(Quantifier):
-
-    def __init__(self, variables: Iterable[str], sentence: Sentence):
-        self._name = f'ForAll {",".join(variables)}: {predicate.name}'
-
-        self._variables = variables
-        self._predicate = sentence.to_predicate()
-
-    def evaluate(self, knowledge_base: 'KnowledgeBase') -> bool:
-        # TODO: Do we need to normalize the variables so they don't overlap with atoms in the knowledgebase?
-        permutations = itertools.permutations(knowledge_base.truths, len(self._variables))
-        for permutation in permutations:
-            # create a mapping of variable to atom in knowledgebase
-            bindings = Quantifier._create_bindings(self._variables, permutation)
-            if not self._predicate.evaluate(knowledge_base, bindings):
-                return False
-
-        return True
-
-
-class KnowledgeBase():
-
-    def __init__(self):
-        self._entities = dict()
-        self._facts = set()
-
-        self._entities['True'] = Entity('True')
-
-    # TODO: Is there a way to generalize this?
-    def _entails_atom(self, atom: Entity) -> bool:
-        if atom in self._entities.values():
-            return True
-
-        relevant_facts = [fact for fact in self._facts if fact.rhs == atom]
-        for fact in relevant_facts:
-            if self.entails(fact.lhs):
-                return True
-
-        return False
-
-    def _entails_clause(self, clause: Clause) -> bool:
-        clause_type, components = clause.get_components()
-
-        results = [self.entails(component) for component in components]
-        if clause_type == 'and':
-            return all(results)
-        elif clause_type == 'or':
-            return any(results)
-        else:
-            return not results[0]
-
-    def add_entity_attributes(self, entity_name: str, attributes: Union[str, Iterable[str]]):
-        self.entities[entity_name].attributes.update(attributes)
-
-    def entails(self, query: Union[Entity, Clause]) -> bool:
-        if type(query) is Entity:
-            return self._entails_atom(query)
-
-        if issubclass(type(query), Clause):
-            return self._entails_clause(query)
-
-        return False
-
-    @property
-    def entities(self):
-        return self._entities
-
-    @property
-    def facts(self):
-        return self._facts
-
-    def remove_entity_attributes(self, entity_name: str, attributes: Union[str, Iterable[str]]):
-        entity = self.entities[entity_name]
-        for attribute in attributes:
-            entity.attributes.discard(attribute)
-
-    def tell(self, sentence: Sentence):
-        if type(sentence) is Entity:
-            self._entities.add(sentence)
-        else:
-            self._facts.add(sentence.to_predicate())
