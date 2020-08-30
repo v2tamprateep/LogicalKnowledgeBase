@@ -28,6 +28,9 @@ class Sentence(ABC):
     def evaluate(self, facts: Set, bindings: Mapping[str, 'Entity']=None) -> bool:
         pass
 
+    def to_predicate(self) -> 'Predicate':
+        return Predicate(Entity('True'), self)
+
 
 """
 An atomic boolean variable
@@ -48,27 +51,11 @@ class Entity(Sentence):
     def substitute(self, new_name: str) -> 'Entity':
         return Entity(new_name, self.attributes)
 
-    def to_predicate(self) -> 'Predicate':
-        return Predicate(Entity('True'), self)
-
 
 """
 A clause is a group of atoms or smaller subclauses.
 """
-class Clause(Sentence):
-
-    @abstractmethod
-    def evaluate(self, facts: Set) -> bool:
-        pass
-
-    def get_components(self) -> Union[str, Iterable]:
-        return self.clause_type, self.sub_clauses
-
-    def to_predicate(self) -> 'Predicate':
-        return Predicate(Entity('True'), self)
-
-
-class AndClause(Clause):
+class AndClause(Sentence):
 
     def __init__(self, clauses: Iterable[Sentence]):
         self.clause_type = 'and'
@@ -80,7 +67,7 @@ class AndClause(Clause):
         return all([clause.evaluate(facts, bindings) for clause in self.sub_clauses])
 
 
-class NotClause(Clause):
+class NotClause(Sentence):
 
     def __init__(self, clause: Sentence):
         self.clause_type = 'not'
@@ -92,7 +79,7 @@ class NotClause(Clause):
         return not self.sub_clauses[0].evaluate(facts, bindings)
 
 
-class OrClause(Clause):
+class OrClause(Sentence):
 
     def __init__(self, clauses: Iterable[Sentence]):
         self.clause_type = 'or'
