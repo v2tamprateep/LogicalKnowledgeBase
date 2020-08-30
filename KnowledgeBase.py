@@ -1,7 +1,7 @@
 
 from typing import Any, Iterable, Union
 
-from Logic import AndClause, Clause, Entity, NotClause, OrClause, Sentence
+from logic.Logic import AndClause, Clause, Entity, NotClause, OrClause, Sentence
 
 
 class KnowledgeBase:
