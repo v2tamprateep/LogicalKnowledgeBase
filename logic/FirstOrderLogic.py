@@ -1,27 +1,46 @@
 
 import itertools
-from typing import Callable, Iterable, Mapping, Set
+from typing import Callable, Iterable, Mapping
 
-from Logic import Entity, Sentence
+from logic.Logic import Entity, Sentence
 
 
 class Function(Sentence):
 
     def __init__(self,
                  name: str,
-                 entities: Iterable[Entity],
-                 action: Callable[[Iterable[Entity]], bool]):
+                 variables: Iterable[str],
+                 action: Callable):
         self._name = name
-        self._entities = entities
+        self._variables = variables
         self._action = action
 
-    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
-        if bindings:
-            substitutes = [e.substitute(bindings[e.name]) if e.name in bindings.keys() else e
-                           for e in self._entities]
-            return self._action(substitutes)
 
-        return self._action(self._entities)
+class UnaryFunction(Function):
+
+    def __init__(self,
+                 name: str,
+                 variable: str,
+                 action: Callable[[Entity], bool]):
+        super().__init__(name, [variable], action)
+
+    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
+        entity = bindings[self._variables[0]] if bindings else facts[self._variables[0]]
+        return self._action(entity)
+
+
+class BinaryFunction(Function):
+
+    def __init__(self,
+                 name: str,
+                 variables: Iterable[str],
+                 action: Callable[[Entity, Entity], bool]):
+        super().__init__(name, variables, action)
+
+    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
+        entity1 = bindings[self._variables[0]] if bindings else facts[self._variables[0]]
+        entity2 = bindings[self._variables[1]] if bindings else facts[self._variables[1]]
+        return self._action(entity1, entity2)
 
 
 class Quantifier(Sentence):
@@ -44,7 +63,7 @@ class ExistentialQuantifier(Quantifier):
         self._variables = variables
         self._predicate = sentence.to_predicate()
 
-    def evaluate(self, facts: Set) -> bool:
+    def evaluate(self, facts: Iterable[Entity]) -> bool:
         # TODO: Do we need to normalize the variables so they don't overlap with atoms in the knowledgebase?
         permutations = itertools.permutations(facts, len(self._variables))
         for permutation in permutations:
@@ -64,7 +83,7 @@ class UniversalQuantifier(Quantifier):
         self._variables = variables
         self._predicate = sentence.to_predicate()
 
-    def evaluate(self, facts: Set) -> bool:
+    def evaluate(self, facts: Iterable[Entity]) -> bool:
         # TODO: Do we need to normalize the variables so they don't overlap with atoms in the knowledgebase?
         permutations = itertools.permutations(facts, len(self._variables))
         for permutation in permutations:

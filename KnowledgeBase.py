@@ -1,10 +1,8 @@
 
 from typing import Any, Iterable, Union
 
-from logic.Logic import AndClause, Entity, NotClause, OrClause, Sentence
+from logic.Logic import Clause, Entity, Sentence
 
-
-Clause = Union[AndClause, NotClause, OrClause]
 
 class KnowledgeBase:
 

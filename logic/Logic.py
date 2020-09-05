@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, Mapping, Set, Union
+from typing import Any, Callable, Iterable, Mapping, Tuple, Union
 
 
 """
@@ -25,7 +25,7 @@ class Sentence(ABC):
         return self._name
 
     @abstractmethod
-    def evaluate(self, facts: Set, bindings: Mapping[str, 'Entity']=None) -> bool:
+    def evaluate(self, facts: Iterable['Entity'], bindings: Mapping[str, 'Entity']=None) -> bool:
         pass
 
     def to_predicate(self) -> 'Predicate':
@@ -37,12 +37,12 @@ An atomic boolean variable
 """
 class Entity(Sentence):
 
-    def __init__(self, name: str, attributes: Iterable[str]=None):
+    # Attributes are tuples of attribute name and attribute value (None if not applicable)
+    def __init__(self, name: str, attributes: Iterable[Tuple]=None):
         self._name = name
-
         self.attributes = set(attributes) if attributes else set()
 
-    def evaluate(self, facts: Set, bindings: Mapping[str, 'Entity']=None) -> bool:
+    def evaluate(self, facts: Iterable['Entity'], bindings: Mapping[str, 'Entity']=None) -> bool:
         if bindings and self.name in bindings.keys():
             return self.substitute(bindings[self.name]) in facts
 
@@ -52,42 +52,48 @@ class Entity(Sentence):
         return Entity(new_name, self.attributes)
 
 
+class Clause(Sentence):
+
+    def __init__(self, clause_type: str, clauses: Iterable[Sentence]):
+        self.clause_type = clause_type
+        self.sub_clauses = clauses
+
+        if clause_type == 'not':
+            self._name = f'not ({clauses[0].name})'
+        else:
+            self._name = f' {clause_type} '.join([f'({clause.name})' for clause in clauses])
+
+    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
+        pass
+
+
 """
 A clause is a group of atoms or smaller subclauses.
 """
-class AndClause(Sentence):
+class AndClause(Clause):
 
     def __init__(self, clauses: Iterable[Sentence]):
-        self.clause_type = 'and'
-        self._name = f' and '.join([f'({clause.name})' for clause in clauses])
+        super().__init__('and', clauses)
 
-        self.sub_clauses = clauses
-
-    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
         return all([clause.evaluate(facts, bindings) for clause in self.sub_clauses])
 
 
-class NotClause(Sentence):
+class NotClause(Clause):
 
     def __init__(self, clause: Sentence):
-        self.clause_type = 'not'
-        self._name = f'not ({clause.name})'
+        super().__init__('not', [clause])
 
-        self.sub_clauses = [clause]
-
-    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
         return not self.sub_clauses[0].evaluate(facts, bindings)
 
 
-class OrClause(Sentence):
+class OrClause(Clause):
 
     def __init__(self, clauses: Iterable[Sentence]):
-        self.clause_type = 'or'
-        self._name = f' or '.join([f'({clause.name})' for clause in clauses])
+        super().__init__('or', clauses)
 
-        self.sub_clauses = clauses
-
-    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
         return any([clause.evaluate(facts, bindings) for clause in self.sub_clauses])
 
 
@@ -103,7 +109,7 @@ class Predicate(Sentence):
         self.lhs = left
         self.rhs = right
 
-    def evaluate(self, facts: Set, bindings: Mapping[str, Entity]=None) -> bool:
+    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
         return not self.lhs.evaluate(facts, bindings) \
             or self.rhs.evaluate(facts, bindings)
 
