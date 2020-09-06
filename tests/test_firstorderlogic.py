@@ -78,20 +78,22 @@ class NestedQuantifierTests(TestCase):
         functions = []
         self.assertFalse(outer_quantifier.evaluate(entities, functions))
 
-        functions.extend(
-            [Function('areFriends', ['Alice', 'Bob']),
-            [Function('areFriends', ['Alice', 'Carol']),
+        functions.extend([
+            Function('areFriends', ['Alice', 'Bob']),
+            Function('areFriends', ['Alice', 'Carol']),
             Function('areFriends', ['Bob', 'Carol']),
             Function('areFriends', ['Bob', 'Alice']),
             Function('areFriends', ['Carol', 'Alice']),
-            Function('areFriends', ['Carol', 'Bob'])])])
+            Function('areFriends', ['Carol', 'Bob'])
+        ])
         self.assertFalse(outer_quantifier.evaluate(entities, functions))
 
         # Everyone also has to be friends with themselves, which is rather wholesome
-        functions.extend(
-            [Function('areFriends', ['Alice', 'Alice']),
+        functions.extend([
+            Function('areFriends', ['Alice', 'Alice']),
             Function('areFriends', ['Bob', 'Bob']),
-            Function('areFriends', ['Carol', 'Carol'])])
+            Function('areFriends', ['Carol', 'Carol'])
+        ])
         self.assertTrue(outer_quantifier.evaluate(entities, functions))
 
     def test_universalquantifier_evaluation(self):
@@ -106,14 +108,16 @@ class NestedQuantifierTests(TestCase):
         functions = []
         self.assertFalse(quantifier.evaluate(entities, functions))
 
-        functions.extend(
-            [Function('areFriends', ['Alice', 'Bob']),
+        functions.extend([
+            Function('areFriends', ['Alice', 'Bob']),
             Function('areFriends', ['Bob', 'Carol']),
-            Function('areFriends', ['Carol', 'Alice'])])
+            Function('areFriends', ['Carol', 'Alice'])
+        ])
         self.assertFalse(quantifier.evaluate(entities, functions))
 
-        functions.extend(
-            [Function('areFriends', ['Alice', 'Carol']),
+        functions.extend([
+            Function('areFriends', ['Alice', 'Carol']),
             Function('areFriends', ['Bob', 'Alice']),
-            Function('areFriends', ['Carol', 'Bob'])])
+            Function('areFriends', ['Carol', 'Bob'])
+        ])
         self.assertTrue(quantifier.evaluate(entities, functions))
