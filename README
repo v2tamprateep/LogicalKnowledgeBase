@@ -13,10 +13,10 @@ The ultimate goal of this project is to be used in a planning AI agent.
 
 
 TODO:
-- Nested quantifiers need to match un-nested equivalent to evaluate correctly
-- Nested quantifiers tests
-
-- KnowledgeBase entails should not only evaluate the query but also make logical jumps
+- Fix variable normalization and test
 - KnowledgeBase tests
 
+- KnowledgeBase entails should not only evaluate the query but also make logical jumps
+
+Would be nice:
 - Write interpreter
