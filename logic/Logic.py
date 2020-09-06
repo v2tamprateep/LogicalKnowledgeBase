@@ -25,7 +25,10 @@ class Sentence(ABC):
         return self._name
 
     @abstractmethod
-    def evaluate(self, facts: Iterable['Entity'], bindings: Mapping[str, 'Entity']=None) -> bool:
+    def evaluate(self,
+                 entities: Mapping[str, 'Entity'],
+                 functions: Iterable['Function'],
+                 bindings: Mapping[str, 'Entity']=None) -> bool:
         pass
 
     def to_predicate(self) -> 'Predicate':
@@ -38,15 +41,21 @@ An atomic boolean variable
 class Entity(Sentence):
 
     # Attributes are tuples of attribute name and attribute value (None if not applicable)
-    def __init__(self, name: str, attributes: Iterable[Tuple]=None):
+    def __init__(self, name: str, attributes: Mapping[str, Iterable]=None):
         self._name = name
-        self.attributes = set(attributes) if attributes else set()
+        self._attributes = attributes if attributes else dict()
 
-    def evaluate(self, facts: Iterable['Entity'], bindings: Mapping[str, 'Entity']=None) -> bool:
+    def udpate_attribute(self, attribute: str, value: Iterable[Any]):
+        self._attributes.setdefault(attribute, []).append(value)
+
+    def evaluate(self,
+                 entities: Mapping[str, 'Entity'],
+                 functions: Iterable['Function'],
+                 bindings: Mapping[str, 'Entity']=None) -> bool:
         if bindings and self.name in bindings.keys():
-            return self.substitute(bindings[self.name]) in facts
+            return self.substitute(bindings[self.name]) in entities
 
-        return self in facts
+        return self.name == 'True' or self in entities
 
     def substitute(self, new_name: str) -> 'Entity':
         return Entity(new_name, self.attributes)
@@ -63,9 +72,6 @@ class Clause(Sentence):
         else:
             self._name = f' {clause_type} '.join([f'({clause.name})' for clause in clauses])
 
-    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
-        pass
-
 
 """
 A clause is a group of atoms or smaller subclauses.
@@ -75,8 +81,11 @@ class AndClause(Clause):
     def __init__(self, clauses: Iterable[Sentence]):
         super().__init__('and', clauses)
 
-    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
-        return all([clause.evaluate(facts, bindings) for clause in self.sub_clauses])
+    def evaluate(self,
+                 entities: Mapping[str, Entity],
+                 functions: Iterable['Function'],
+                 bindings: Mapping[str, Entity]=None) -> bool:
+        return all([clause.evaluate(entities, functions, bindings) for clause in self.sub_clauses])
 
 
 class NotClause(Clause):
@@ -84,8 +93,11 @@ class NotClause(Clause):
     def __init__(self, clause: Sentence):
         super().__init__('not', [clause])
 
-    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
-        return not self.sub_clauses[0].evaluate(facts, bindings)
+    def evaluate(self,
+                 entities: Mapping[str, Entity],
+                 functions: Iterable['Function'],
+                 bindings: Mapping[str, Entity]=None) -> bool:
+        return not self.sub_clauses[0].evaluate(entities, functions, bindings)
 
 
 class OrClause(Clause):
@@ -93,8 +105,11 @@ class OrClause(Clause):
     def __init__(self, clauses: Iterable[Sentence]):
         super().__init__('or', clauses)
 
-    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
-        return any([clause.evaluate(facts, bindings) for clause in self.sub_clauses])
+    def evaluate(self,
+                 entities: Mapping[str, Entity],
+                 functions: Iterable['Function'],
+                 bindings: Mapping[str, Entity]=None) -> bool:
+        return any([clause.evaluate(entities, functions, bindings) for clause in self.sub_clauses])
 
 
 """
@@ -109,9 +124,12 @@ class Predicate(Sentence):
         self.lhs = left
         self.rhs = right
 
-    def evaluate(self, facts: Iterable[Entity], bindings: Mapping[str, Entity]=None) -> bool:
-        return not self.lhs.evaluate(facts, bindings) \
-            or self.rhs.evaluate(facts, bindings)
+    def evaluate(self,
+                 entities: Mapping[str, Entity],
+                 functions: Iterable['Function'],
+                 bindings: Mapping[str, Entity]=None) -> bool:
+        return not self.lhs.evaluate(entities, functions, bindings) \
+            or self.rhs.evaluate(entities, functions, bindings)
 
     def to_predicate(self):
         return self

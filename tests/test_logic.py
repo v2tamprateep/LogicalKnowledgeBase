@@ -12,36 +12,36 @@ class EvaluationTests(TestCase):
 
         # Components are all true
         clause = AndClause([entityA, entityB])
-        self.assertTrue(clause.evaluate(facts=set([entityA, entityB])))
+        self.assertTrue(clause.evaluate(entities=[entityA, entityB], functions=[]))
 
         # Components are all false
         clause = AndClause([entityA, entityB])
-        self.assertFalse(clause.evaluate(set()))
+        self.assertFalse(clause.evaluate(entities=[], functions=[]))
 
         # Some components are false
         clause = AndClause([entityA, entityB])
-        self.assertFalse(clause.evaluate(facts=set([entityA])))
-        self.assertFalse(clause.evaluate(facts=set([entityB])))
+        self.assertFalse(clause.evaluate(entities=[entityA], functions=[]))
+        self.assertFalse(clause.evaluate(entities=[entityB], functions=[]))
 
     def test_entity_evaluation(self):
         entityA = Entity('A')
 
         # Entity is true
-        self.assertTrue(entityA.evaluate(facts=set([entityA])))
+        self.assertTrue(entityA.evaluate(entities=[entityA], functions=[]))
 
         # Entity is false
-        self.assertFalse(entityA.evaluate(facts=set()))
+        self.assertFalse(entityA.evaluate(entities=[], functions=[]))
 
     def test_notclause_evaluation(self):
         entityA = Entity('A')
 
         # Component is true
         clause = NotClause(entityA)
-        self.assertFalse(clause.evaluate(facts=set([entityA])))
+        self.assertFalse(clause.evaluate(entities=[entityA], functions=[]))
 
         # Components is false
         clause = NotClause(entityA)
-        self.assertTrue(clause.evaluate(facts=set()))
+        self.assertTrue(clause.evaluate(entities=[], functions=[]))
 
     def test_orclause_evaluation(self):
         entityA = Entity('A')
@@ -49,16 +49,16 @@ class EvaluationTests(TestCase):
 
         # Components are all true
         clause = OrClause([entityA, entityB])
-        self.assertTrue(clause.evaluate(facts=set([entityA, entityB])))
+        self.assertTrue(clause.evaluate(entities=[entityA, entityB], functions=[]))
 
         # Components are all false
         clause = OrClause([entityA, entityB])
-        self.assertFalse(clause.evaluate(facts=set()))
+        self.assertFalse(clause.evaluate(entities=[], functions=[]))
 
         # Some components are false
         clause = OrClause([entityA, entityB])
-        self.assertTrue(clause.evaluate(facts=set([entityA])))
-        self.assertTrue(clause.evaluate(facts=set([entityB])))
+        self.assertTrue(clause.evaluate(entities=[entityA], functions=[]))
+        self.assertTrue(clause.evaluate(entities=[entityB], functions=[]))
 
     def test_predicate_evaluation(self):
         entityA = Entity('A')
@@ -66,12 +66,12 @@ class EvaluationTests(TestCase):
         predicate = Predicate(entityA, entityB)
 
         # If the LHS is false, always evaluate to true
-        self.assertTrue(predicate.evaluate(facts=set()))
-        self.assertTrue(predicate.evaluate(facts=set([entityB])))
+        self.assertTrue(predicate.evaluate(entities=[], functions=[]))
+        self.assertTrue(predicate.evaluate(entities=[entityB], functions=[]))
 
         # if the LHS is true, evaluate to the boolean value of the RHS
-        self.assertFalse(predicate.evaluate(facts=set([entityA])))
-        self.assertTrue(predicate.evaluate(facts=set([entityA, entityB])))
+        self.assertFalse(predicate.evaluate(entities=[entityA], functions=[]))
+        self.assertTrue(predicate.evaluate(entities=[entityA, entityB], functions=[]))
 
 
 class PredicateConversionTests(TestCase):

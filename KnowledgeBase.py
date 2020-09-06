@@ -7,7 +7,7 @@ from logic.Logic import Clause, Entity, Sentence
 class KnowledgeBase:
 
     def __init__(self):
-        self._facts = set([Entity('True')])
+        self._facts = dict()
         self._statements = set()
 
     def add_entity_attributes(self, entity_name: str, attributes: Union[str, Iterable[str]]):
@@ -31,6 +31,6 @@ class KnowledgeBase:
 
     def tell(self, sentence: Sentence):
         if type(sentence) is Entity:
-            self._facts.add(sentence)
+            self._facts[sentence.name] = sentence
         else:
             self._statements.add(sentence.to_predicate())
