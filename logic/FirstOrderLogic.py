@@ -38,11 +38,7 @@ class Quantifier(Sentence):
         tuples = zip(variables, entities)
         return {v: e for v, e in tuples}
 
-    @staticmethod
     def _normalize(self, existing_bindings: Mapping[str, Entity]) -> str:
-        if not existing_bindings:
-            return
-
         existing_variables = [existing_bindings.keys()]
         normalized_vars = []
 
@@ -64,7 +60,7 @@ class Quantifier(Sentence):
     def evaluate(self,
                  entities: Mapping[str, Entity],
                  functions: Iterable[Function],
-                 bindings: Mapping[str, Entity]=None) -> bool:
+                 bindings: Mapping[str, Entity]=dict()) -> bool:
         self._normalize(bindings)
 
         permutations = itertools.permutations(entities.values(), len(self._variables))
@@ -76,7 +72,8 @@ class ExistentialQuantifier(Quantifier):
     def __init__(self, variables: Iterable[str], sentence: Sentence):
         super().__init__('Exists', variables, sentence)
 
-    def evaluate_permutations(permutations: Iterable,
+    def evaluate_permutations(self,
+                              permutations: Iterable,
                               entities: Mapping[str, Entity],
                               functions: Iterable[Function],
                               bindings: Mapping[str, Entity]) -> bool:
@@ -95,7 +92,8 @@ class UniversalQuantifier(Quantifier):
     def __init__(self, variables: Iterable[str], sentence: Sentence):
         super().__init__('ForAll', variables, sentence)
 
-    def evaluate_permutations(permutations: Iterable,
+    def evaluate_permutations(self,
+                              permutations: Iterable,
                               entities: Mapping[str, Entity],
                               functions: Iterable[Function],
                               bindings: Mapping[str, Entity]) -> bool:
