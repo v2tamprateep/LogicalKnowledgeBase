@@ -76,7 +76,7 @@ class EvaluationTests(TestCase):
 
 class PredicateConversionTests(TestCase):
 
-    def assert_predicate_conversion(self, sentence: Sentence):
+    def _assert_predicate_conversion(self, sentence: Sentence):
         predicate = sentence.to_predicate()
 
         self.assertEqual(predicate.lhs, Entity('True'))
@@ -91,8 +91,8 @@ class PredicateConversionTests(TestCase):
         not_clause = NotClause(entityA)
 
         for clause in [and_clause, or_clause, not_clause]:
-            self.assert_predicate_conversion(clause)
+            self._assert_predicate_conversion(clause)
 
     def test_entity_to_predicate(self):
         entity = Entity('A')
-        self.assert_predicate_conversion(entity)
+        self._assert_predicate_conversion(entity)

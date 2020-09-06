@@ -23,6 +23,9 @@ class Function(Sentence):
 
         return self in functions
 
+    def update_variables(self, variables: Iterable[str]):
+        self._variables = variables
+
 
 class Quantifier(Sentence):
 
@@ -30,7 +33,7 @@ class Quantifier(Sentence):
         self._name = f'{quantifier_type} {",".join(variables)}: {sentence.name}'
 
         self._variables = variables
-        self._predicate = sentence.to_predicate()
+        self._sentence = sentence
 
     @staticmethod
     def _create_bindings(variables: Iterable[str],
@@ -39,6 +42,10 @@ class Quantifier(Sentence):
         return {v: e for v, e in tuples}
 
     def _normalize(self, existing_bindings: Mapping[str, Entity]) -> str:
+        if len(existing_bindings) == 0:
+            # no need to normalize
+            return
+
         existing_variables = [existing_bindings.keys()]
         normalized_vars = []
 
@@ -55,7 +62,7 @@ class Quantifier(Sentence):
             normalized_vars.append(variable)
             existing_variables.append(variable)
 
-        self._variables = normalized_vars
+        self._update_variables(normalized_vars)
 
     def evaluate(self,
                  entities: Mapping[str, Entity],
@@ -65,6 +72,10 @@ class Quantifier(Sentence):
 
         permutations = itertools.permutations(entities.values(), len(self._variables))
         return self.evaluate_permutations(permutations, entities, functions, bindings)
+
+    def _update_variables(self, variables: Iterable[str]):
+        self._variables = variables
+        self._sentence.update_variables(variables)
 
 
 class ExistentialQuantifier(Quantifier):
@@ -79,9 +90,10 @@ class ExistentialQuantifier(Quantifier):
                               bindings: Mapping[str, Entity]) -> bool:
         for permutation in permutations:
             # Update the mapping of variable to entity in knowledgebase
-            new_bindings = \
-                Quantifier._create_bindings(self._variables, permutation).update(bindings)
-            if self._predicate.evaluate(entities, functions, new_bindings):
+            new_bindings = Quantifier._create_bindings(self._variables, permutation)
+            new_bindings.update(bindings)
+
+            if self._sentence.to_predicate().evaluate(entities, functions, new_bindings):
                 return True
 
         return False
@@ -99,9 +111,10 @@ class UniversalQuantifier(Quantifier):
                               bindings: Mapping[str, Entity]) -> bool:
         for permutation in permutations:
             # Update the mapping of variable to entity in knowledgebase
-            new_bindings = \
-                Quantifier._create_bindings(self._variables, permutation).update(bindings)
-            if not self._predicate.evaluate(entities, functions, new_bindings):
+            new_bindings = Quantifier._create_bindings(self._variables, permutation)
+            new_bindings.update(bindings)
+
+            if not self._sentence.to_predicate().evaluate(entities, functions, new_bindings):
                 return False
 
         return True

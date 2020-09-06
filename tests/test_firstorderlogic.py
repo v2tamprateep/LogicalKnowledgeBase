@@ -5,10 +5,11 @@ from typing import Iterable, Mapping
 from logic.FirstOrderLogic import *
 
 
-class EvaluationTests(TestCase):
-
-    def _entity_list_to_dictionary(self, entities: Iterable[Entity]) -> Mapping[str, Entity]:
+def entity_list_to_dictionary(entities: Iterable[Entity]) -> Mapping[str, Entity]:
         return {e.name: e for e in entities}
+
+
+class EvaluationTests(TestCase):
 
     def test_existentialquantifier_evaluation(self):
         alice = Entity('Alice')
@@ -18,7 +19,7 @@ class EvaluationTests(TestCase):
         are_friends = Function('areFriends', ['p1', 'p2'])
         quantifier = ExistentialQuantifier(['p1', 'p2'], are_friends)
 
-        entities = self._entity_list_to_dictionary([alice, bob, carol])
+        entities = entity_list_to_dictionary([alice, bob, carol])
 
         self.assertFalse(quantifier.evaluate(entities, functions=[]))
 
@@ -48,7 +49,7 @@ class EvaluationTests(TestCase):
         are_friends = Function('areFriends', ['p1', 'p2'])
         quantifier = UniversalQuantifier(['p1', 'p2'], are_friends)
 
-        entities = self._entity_list_to_dictionary([alice, bob, carol])
+        entities = entity_list_to_dictionary([alice, bob, carol])
         functions = []
         self.assertFalse(quantifier.evaluate(entities, functions))
 
@@ -63,3 +64,29 @@ class EvaluationTests(TestCase):
             Function('areFriends', ['Bob', 'Alice']),
             Function('areFriends', ['Carol', 'Bob'])])
         self.assertTrue(quantifier.evaluate(entities, functions))
+
+
+class NestedQuantifierTests(TestCase):
+
+    def test_nested_existentialquantifier(self):
+        alice = Entity('Alice')
+        bob = Entity('Bob')
+        carol = Entity('Carol')
+
+        # Construct something along the lines of: ExEy.AreFriends(x, y)
+        are_friends = Function('areFriends', ['p1', 'p2'])
+        inner_quantifier = ExistentialQuantifier(['p2'], are_friends)
+        outer_quantifier = ExistentialQuantifier(['p1'], inner_quantifier)
+
+        entities = entity_list_to_dictionary([alice, bob, carol])
+
+        self.assertFalse(outer_quantifier.evaluate(entities, functions=[]))
+
+        functions = [Function('areFriends', ['Alice', 'Bob'])]
+        self.assertTrue(outer_quantifier.evaluate(entities, functions))
+
+    def test_nested_mixed_quantifiers(self):
+        pass
+
+    def test_nested_universalquantifier(self):
+        pass
